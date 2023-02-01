@@ -4,6 +4,7 @@ from heapq import heappush, heappop # min-heap - heap[0] smallest value
 import time
 import argparse
 import sys
+sys.setrecursionlimit(1000000)
 
 #====================================================================================
 
@@ -100,58 +101,6 @@ class Board:
                 res = res + ele
         return res
 
-
-
-    def display(self):
-        """
-        Print out the current board.
-
-        """
-        for i, line in enumerate(self.grid):
-            for ch in line:
-                print(ch, end='') # ends with a new line
-            print()
-    
-    def find_empty(self):
-        """
-        Find the two empty spaces on the board, return their positions
-        [(x1, y1), (x2, y2)]
-
-        """
-        res = []
-        for i, line in enumerate(self.grid):
-            for x, ch in enumerate(line):
-                if ch == ".":
-                    res.append((i,x))                    
-        return res
-
-
-
-class State:
-    """
-    State class wrapping a Board with some extra current state information.
-    Note that State and Board are different. Board has the locations of the pieces. 
-    State has a Board and some extra information that is relevant to the search: 
-    heuristic function, f value, current depth and parent.
-    """
-
-    def __init__(self, board, f, depth, parent=None):
-        """
-        :param board: The board of the state.
-        :type board: Board
-        :param f: The f value of current state.
-        :type f: int
-        :param depth: The depth of current state in the search tree.
-        :type depth: int
-        :param parent: The parent of current state.
-        :type parent: Optional[State]
-        """
-        self.board = board
-        self.f = f
-        self.depth = depth
-        self.parent = parent
-        self.id = hash(board)  # The id for breaking ties.
-    
     def move(self, pieces, i, type, dir):
         """
         Move a piece from (srcY, srcX) to (desY, desX) (upper left)
@@ -162,7 +111,7 @@ class State:
         """
         # self.parent = self # inherit the state that we're about to change
         # Update grid
-        grid = self.board.grid
+        grid = self.grid
         piece = pieces[i]
         x = piece.coord_x
         y = piece.coord_y
@@ -185,7 +134,7 @@ class State:
                 grid[y][x+1] = "."
                 grid[y+2][x] = "1"
                 grid[y+2][x+1] = "1"
-                piece.coord_y = y - 1
+                piece.coord_y = y + 1
             elif dir == "up":
                 grid[y+1][x] = "."
                 grid[y+1][x+1] = "."
@@ -259,6 +208,56 @@ class State:
                 grid[y][x+1] = "2"
                 piece.coord_x = x + 1
         return self
+
+    def display(self):
+        """
+        Print out the current board.
+
+        """
+        for i, line in enumerate(self.grid):
+            for ch in line:
+                print(ch, end='') # ends with a new line
+            print()
+    
+    def find_empty(self):
+        """
+        Find the two empty spaces on the board, return their positions
+        [(x1, y1), (x2, y2)]
+
+        """
+        res = []
+        for i, line in enumerate(self.grid):
+            for x, ch in enumerate(line):
+                if ch == ".":
+                    res.append((i,x))                    
+        return res
+
+
+
+class State:
+    """
+    State class wrapping a Board with some extra current state information.
+    Note that State and Board are different. Board has the locations of the pieces. 
+    State has a Board and some extra information that is relevant to the search: 
+    heuristic function, f value, current depth and parent.
+    """
+
+    def __init__(self, board, f, depth, parent=None):
+        """
+        :param board: The board of the state.
+        :type board: Board
+        :param f: The f value of current state.
+        :type f: int
+        :param depth: The depth of current state in the search tree.
+        :type depth: int
+        :param parent: The parent of current state.
+        :type parent: Optional[State]
+        """
+        self.board = board
+        self.f = f
+        self.depth = depth
+        self.parent = parent
+        self.id = hash(board)  # The id for breaking ties.
     
     def trace_sol(self):
         f = open("./sol.txt", "a")
@@ -301,16 +300,22 @@ class DFS:
         """
         Deep copy the current state, move the newState, and add it to the frontier
         """
-        newState = deepcopy(self.currentState)
-        newState = newState.move(newState.board.pieces, i, type, dir)
-        new_str = newState.board.getStringRep()
+        # newState = deepcopy(self.currentState)
+        # newState = newState.move(newState.board.pieces, i, type, dir)
+        # new_str = newState.board.getStringRep()
+        # if new_str not in self.seen:
+        #     newState.id = hash(newState.board)
+        #     newState.parent = self.currentState
+        #     newState.depth = self.currentState.depth + 1
+        #     self.frontierSet.append(State(newState.board, 0, self.currentState.depth + 1, self.currentState))
+        #     self.seen.add(new_str)
+        # Adding boards instead because it's faster
+        newBoard = deepcopy(self.currentState.board)
+        newBoard = newBoard.move(newBoard.pieces, i, type, dir)
+        new_str = newBoard.getStringRep()
         if new_str not in self.seen:
-            newState.id = hash(newState.board)
-            newState.parent = self.currentState
-            newState.depth = self.currentState.depth + 1
-            self.frontierSet.append(newState)
+            self.frontierSet.append(State(newBoard, 0, self.currentState.depth + 1, self.currentState))
             self.seen.add(new_str)
-
         # newState.board.display()
         # print("depth:", newState.depth)
         # # input("continue?\n")
@@ -328,32 +333,13 @@ class DFS:
         # print("e", e)
         e1y = e[0][0]
         e1x = e[0][1]
-        try:
-            e2y = e[1][0]
-        except IndexError:
-            pState = self.currentState.parent
-            print("IndexError#####################")
-            pState.board.display()
-            print("/")
-            pState.parent.board.display()    
-            print("depth:", self.currentState.parent.depth)
+        e2y = e[1][0]
         e2x = e[1][1]
         pieces = board.pieces
         for i in range(len(pieces)):
             piece = pieces[i]
             px = piece.coord_x
             py = piece.coord_y
-                
-            if piece.orientation == "v" and grid[py+1][px] == "v":
-                if (py == e1y - 2 and px == e1x) or (py == e2y - 2 and px == e2x):
-                    self.add_successor(i, "v" ,"down")
-                if (py == e1y + 1 and px == e1x) or (py == e2y + 1 and px == e2x):
-                    self.add_successor(i, "v" ,"up")
-                if (py == e1y and px == e1x + 1 and e2y == e1y + 1 and e2x == e1x):
-                    self.add_successor(i, "v" ,"left")
-                if (py == e1y and px == e1x - 1 and e2y == e1y + 1 and e2x == e1x):
-                    self.add_successor(i, "v" ,"right")
-            
             if piece.orientation == "h" and grid[py][px+1] == ">":
                 if (py == e1y and px == e1x + 1) or (py == e2y and px == e2x + 1):
                     self.add_successor(i, "h" ,"left")
@@ -373,6 +359,16 @@ class DFS:
                     self.add_successor(i, "2" ,"left")
                 if (py == e1y and px == e1x - 1) or (py == e2y and px == e2x - 1):
                     self.add_successor(i, "2" ,"right")
+            
+            if piece.orientation == "v" and grid[py+1][px] == "v":
+                if (py == e1y - 2 and px == e1x) or (py == e2y - 2 and px == e2x):
+                    self.add_successor(i, "v" ,"down")
+                if (py == e1y + 1 and px == e1x) or (py == e2y + 1 and px == e2x):
+                    self.add_successor(i, "v" ,"up")
+                if (py == e1y and px == e1x + 1 and e2y == e1y + 1 and e2x == e1x):
+                    self.add_successor(i, "v" ,"left")
+                if (py == e1y and px == e1x - 1 and e2y == e1y + 1 and e2x == e1x):
+                    self.add_successor(i, "v" ,"right")
 
             if piece.is_goal and grid[py][px+1] == "1" and grid[py+1][px] == "1" and grid[py+1][px+1] == "1":
                 # print("py:",py, "px:",px, "e1y:",e1y, "e1x:",e1x, "e2y:",e2y, "e2x:",e2x)
@@ -400,56 +396,53 @@ class DFS:
         start_str = self.startState.board.getStringRep()
         self.seen.add(start_str)
         while len(self.frontierSet) != 0:
-        # while self.currentState.depth < 100:
+        # while self.currentState.depth < 2000:
             # print("frontier",len(self.frontierSet))
-            curState = self.frontierSet.pop()   # Pop the last state out of the frontier
+            curState = self.frontierSet.pop(-1)   # Pop the last state out of the frontier
             cur_str = curState.board.getStringRep()
             self.currentState = curState    # Update current state for DFS
             cur_id = hash(self.currentState.board)
             if self.checkGoal():            # Check if current state is the goal state
                     print("\nGoal found!")
+                    print("depth:", self.currentState.depth)
                     self.currentState.board.display()
-                    # clear sol file
                     
                     self.currentState.trace_sol()        
                     return
-            # elif cur_str not in self.seen:        # If goal state not met, check wthether we have explored this state before
             
-            # self.frontier_to_file("./frontier.txt")
-            # print("cur_str:",cur_str)
-            
-            self.output_to_file("./output.txt")
-            self.currentState.board.display()
-            print("depth:", self.currentState.depth, "\n")
+            self.output_to_file(self.currentState, "./output1.txt")
+            # self.currentState.board.display()
+            # print("depth:", self.currentState.depth)
             # input("continue?\n")
-            
-            # self.exploredSet.add(self.currentState.board)       # Add current state to exploredSet
             self.move_near()
-            # self.seen.add(cur_str)
-            # self.pathlist.add(self.currentState.board.grid)
+            self.frontier_to_file("./output1.txt")
+
                 
         print("NOT found!")
 
             
     def frontier_to_file(self, filename):
         f = open(filename, "a")
-        f.write("\n")
+        f.write("\nBegin frontier\n")
+        j = 0
         for states in self.frontierSet:    
+            f.write("%d \n" %(j))
             for i, line in enumerate(states.board.grid):
                 for ch in line:
                     f.write(ch) # ends with a new line
                 f.write("\n")
+            j += 1
             f.write("\n")
-        f.write("\n########\n")
+        f.write("frontier done")
         f.close()
     
-    def output_to_file(self, filename):
+    def output_to_file(self, state, filename):
         """
-        Write current state to file
+        Write state to file
         """
         f = open(filename, "a")
-        f.write("\n")
-        for i, line in enumerate(self.currentState.board.grid):
+        f.write("\n\nExploring:\n")
+        for i, line in enumerate(state.board.grid):
             for ch in line:
                 f.write(ch) # ends with a new line
             f.write("\n")
@@ -525,7 +518,7 @@ if __name__ == "__main__":
     '''
     
     # read the board from the file
-    board = read_from_file("./test3.txt")
+    board = read_from_file("./tests/t2.txt")
     # board.display()
     # board.find_empty()
     # for piece in board.pieces:
@@ -535,10 +528,14 @@ if __name__ == "__main__":
     dfs = DFS(state)
     with open("./output.txt", "r+") as f:
         f.truncate(0)
+    with open("./output1.txt", "r+") as f:
+        f.truncate(0)
     with open("./sol.txt", "r+") as f:
         f.truncate(0)
-
+    start = time.time()
     dfs.runDFS()
+    end = time.time()
+    print("Time:", end - start)
     print("\n")
     
 
