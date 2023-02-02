@@ -1,6 +1,7 @@
 import copy
 from copy import deepcopy
-from heapq import heappush, heappop # min-heap - heap[0] smallest value
+from heapq import heappush, heappop # min-heap
+import itertools # tie breaking for heap
 import time
 import argparse
 import sys
@@ -233,6 +234,23 @@ class Board:
                 if ch == ".":
                     res.append((i,x))                    
         return res
+    
+    def manhattan(self):
+        """
+        Returns the vertical distance of the goal piece from goal position.
+        It is in Board level since we don't need higher level information, 
+        and we need to use it in order to create State object.
+        """
+        grid = self.grid
+        # self.display()
+        all_pieces = self.pieces
+        for piece in all_pieces:
+            if piece.is_goal:
+                x = piece.coord_x
+                y = piece.coord_y
+                # print(x,y)
+                # print(abs(1-x) + abs(3-y))
+                return abs(1-x) + abs(3-y)
 
 
 
@@ -260,6 +278,7 @@ class State:
         self.depth = depth
         self.parent = parent
         self.id = hash(board)  # The id for breaking ties.
+
     
     def trace_sol(self):
         f = open("./sol.txt", "a")
@@ -281,9 +300,8 @@ class Solvers:
         self.startState = startState
         self.endState = endState
         self.currentState = startState
-        self.exploredSet = set()    # contains state.id
-        self.frontierSet = []       # contains state
-        self.seen = set()       # for pruning
+        self.frontierList = []       # contains state
+        self.exploredSet = set()       # for pruning
         self.step = 0
 
     def checkGoal(self) -> bool:
@@ -298,33 +316,32 @@ class Solvers:
             return True
         return False
 
-    def add_successor(self, i, type ,dir):
+    def add_successor(self, i, type ,dir, algo):
         """
         Deep copy the current state, move the newState, and add it to the frontier
         """
-        # newState = deepcopy(self.currentState)
-        # newState = newState.move(newState.board.pieces, i, type, dir)
-        # new_str = newState.board.getStringRep()
-        # if new_str not in self.seen:
-        #     newState.id = hash(newState.board)
-        #     newState.parent = self.currentState
-        #     newState.depth = self.currentState.depth + 1
-        #     self.frontierSet.append(State(newState.board, 0, self.currentState.depth + 1, self.currentState))
-        #     self.seen.add(new_str)
-        # Adding boards instead because it's faster
-        newBoard = deepcopy(self.currentState.board)
-        newBoard = newBoard.move(newBoard.pieces, i, type, dir)
-        new_str = newBoard.getStringRep()
-        if new_str not in self.seen:
-            self.frontierSet.append(State(newBoard, 0, self.currentState.depth + 1, self.currentState))
-        # newState.board.display()
-        # print("depth:", newState.depth)
-        # # input("continue?\n")
+        if algo == "DFS":
+            newBoard = deepcopy(self.currentState.board)
+            newBoard = newBoard.move(newBoard.pieces, i, type, dir)
+            new_str = newBoard.getStringRep()
+            if new_str not in self.exploredSet:
+                self.frontierList.append(State(newBoard, 0, self.currentState.depth + 1, self.currentState))
+        elif algo == "A*":
+            newBoard = deepcopy(self.currentState.board)
+            newBoard = newBoard.move(newBoard.pieces, i, type, dir)
+            new_str = newBoard.getStringRep()
+            if new_str not in self.exploredSet:
+                f = newBoard.manhattan()
+                id = hash(newBoard)
+                heappush(self.frontierList, (f, id, State(newBoard, f, self.currentState.depth + 1, self.currentState)))
+
+
     
-    def move_near(self) -> None:
+    def move_near(self, algo) -> None:
         """
         Search all possible ways to move the pieces, and move them,
         Add the state into the frontier.
+        algo == "DFS" or "A*"
         """
         board = self.currentState.board
         grid = board.grid
@@ -343,63 +360,116 @@ class Solvers:
             py = piece.coord_y
             if piece.orientation == "h" and grid[py][px+1] == ">":
                 if (py == e1y and px == e1x + 1) or (py == e2y and px == e2x + 1):
-                    self.add_successor(i, "h" ,"left")
+                    self.add_successor(i, "h" ,"left", algo)
                 if (py == e1y and px == e1x - 2) or (py == e2y and px == e2x - 2):
-                    self.add_successor(i, "h" ,"right")
+                    self.add_successor(i, "h" ,"right", algo)
                 if(py == e1y - 1 and px == e1x and e2x == e1x + 1 and e2y == e1y):
-                    self.add_successor(i, "h" ,"down")
+                    self.add_successor(i, "h" ,"down", algo)
                 if (py == e1y + 1 and px == e1x and e2x == e1x + 1 and e2y == e1y):
-                    self.add_successor(i, "h" ,"up")
+                    self.add_successor(i, "h" ,"up", algo)
 
             if piece.is_single and grid[py][px] == "2":
                 if (py == e1y - 1 and px == e1x) or (py == e2y - 1 and px == e2x):
-                    self.add_successor(i, "2" ,"down")
+                    self.add_successor(i, "2" ,"down", algo)
                 if (py == e1y + 1 and px == e1x) or (py == e2y + 1 and px == e2x):
-                    self.add_successor(i, "2" ,"up")
+                    self.add_successor(i, "2" ,"up", algo)
                 if (py == e1y and px == e1x + 1) or (py == e2y and px == e2x + 1):
-                    self.add_successor(i, "2" ,"left")
+                    self.add_successor(i, "2" ,"left", algo)
                 if (py == e1y and px == e1x - 1) or (py == e2y and px == e2x - 1):
-                    self.add_successor(i, "2" ,"right")
+                    self.add_successor(i, "2" ,"right", algo)
             
             if piece.orientation == "v" and grid[py+1][px] == "v":
                 if (py == e1y - 2 and px == e1x) or (py == e2y - 2 and px == e2x):
-                    self.add_successor(i, "v" ,"down")
+                    self.add_successor(i, "v" ,"down", algo)
                 if (py == e1y + 1 and px == e1x) or (py == e2y + 1 and px == e2x):
-                    self.add_successor(i, "v" ,"up")
+                    self.add_successor(i, "v" ,"up", algo)
                 if (py == e1y and px == e1x + 1 and e2y == e1y + 1 and e2x == e1x):
-                    self.add_successor(i, "v" ,"left")
+                    self.add_successor(i, "v" ,"left", algo)
                 if (py == e1y and px == e1x - 1 and e2y == e1y + 1 and e2x == e1x):
-                    self.add_successor(i, "v" ,"right")
+                    self.add_successor(i, "v" ,"right", algo)
 
             if piece.is_goal and grid[py][px+1] == "1" and grid[py+1][px] == "1" and grid[py+1][px+1] == "1":
                 # print("py:",py, "px:",px, "e1y:",e1y, "e1x:",e1x, "e2y:",e2y, "e2x:",e2x)
                 # if we can move right
                 if (py == e1y and px == e1x - 2 and e2y == e1y + 1 and e2x == e1x): 
-                    self.add_successor(i, "1" ,"right")
+                    self.add_successor(i, "1" ,"right", algo)
                 # if we can move left
                 if (py == e1y and px == e1x + 1 and e2y == e1y + 1 and e2x == e1x):
-                    self.add_successor(i, "1" ,"left")
+                    self.add_successor(i, "1" ,"left", algo)
                 # if we can move down
                 if (py == e1y - 2 and px == e1x and e2x == e1x + 1 and e2y == e1y):
-                    self.add_successor(i, "1" ,"down")
+                    self.add_successor(i, "1" ,"down", algo)
                 # if we can move up
                 if (py == e1y + 1 and px == e1x and e2x == e1x + 1 and e2y == e1y):
-                    self.add_successor(i, "1" ,"up")
+                    self.add_successor(i, "1" ,"up", algo)
+
+
+
+    def run_A_star(self):
+        """
+        A* algorithm with Manhattan heuristics to find the optimal solution.
+        frontierList is a min heap containing:
+        (Manhattan heuristic value, state object)
+
+        Tie-breaking rule:
+        […] store entries as 3-element list including (the priority, an entry count, and the task). 
+        The entry count serves as a tie-breaker so that two tasks with the same priority are returned in 
+        the order they were added. And since no two entry counts are the same, the tuple comparison 
+        will never attempt to directly compare two tasks.
+
+        The alternative to an entry point is a state id which is a hash value of the board.
+        
+        """
+        # Update current state's heuristic value
+        self.currentState.f = self.currentState.board.manhattan()
+        # self.currentState.id = hash(self.currentState.board)
+        # Push (f, state) into the frontier
+        heappush(self.frontierList, (self.currentState.f, self.currentState.id, self.currentState))
+        # Get string representation of the current state
+        start_str = self.currentState.board.getStringRep()
+        i = 1
+        while self.frontierList:
+        # while self.currentState.depth < 2000:
+            f, id, curState = heappop(self.frontierList)   # Pop the lowest heuristic state out of the frontier
+            # Get string representation of the current state
+            cur_str = curState.board.getStringRep()
+            # Update current state for later function calls
+            self.currentState = curState
+            self.currentState.f = f
+            # cur_id = hash(self.currentState.board)
+            if self.checkGoal():            # Check if current state is the goal state
+                    print("\nGoal found!")
+                    print("depth:", self.currentState.depth)
+                    self.currentState.board.display()
+                    self.currentState.trace_sol()        
+                    return
+            elif cur_str not in self.exploredSet:
+                filename = "./output/output" + str(i) + ".txt"
+                file = open(filename,'w+')
+                self.output_to_file(self.currentState, filename)
+                # Add current state to the explored set
+                self.exploredSet.add(curState.board.getStringRep())
+                # Find successors and add them to frontier
+                self.move_near("A*")
+                self.frontier_to_file(filename, "A*")
             
-    def runDFS(self):
+            i += 1
+
+
+    def run_DFS(self):
         """
         While frontier is not empty,
         Pop a state out of frontier, add it to exploredSet
         Check whether the goal is reach, if not,
         Explore possibilities to move, and add them into the frontier.
         """
-        self.frontierSet.append(self.startState)
-        start_str = self.startState.board.getStringRep()
+        self.frontierList.append(self.currentState)
+        start_str = self.currentState.board.getStringRep()
         i = 1
-        while len(self.frontierSet) != 0:
+        while len(self.frontierList) != 0:
         # while self.currentState.depth < 2000:
-            # print("frontier",len(self.frontierSet))
-            curState = self.frontierSet.pop(-1)   # Pop the last state out of the frontier
+            # print("frontier",len(self.frontierList))
+            curState = self.frontierList.pop(-1)   # Pop the last state out of the frontier
             cur_str = curState.board.getStringRep()
             self.currentState = curState    # Update current state for DFS
             cur_id = hash(self.currentState.board)
@@ -410,37 +480,53 @@ class Solvers:
                     
                     self.currentState.trace_sol()        
                     return
-            elif cur_str not in self.seen:
-                # filename = "./output/output" + str(i) + ".txt"
-                # file = open(filename,'w+')
-                # self.output_to_file(self.currentState, filename)
-                # add current state to the explored set
-                self.seen.add(curState.board.getStringRep())
-                # find successors and add them to frontier
-                self.move_near()
-                # self.frontier_to_file(filename)
+            elif cur_str not in self.exploredSet:
+                filename = "./output/output" + str(i) + ".txt"
+                file = open(filename,'w+')
+                self.output_to_file(self.currentState, filename)
+
+                # Add current state to the explored set
+                self.exploredSet.add(curState.board.getStringRep())
+                # Find successors and add them to frontier
+                self.move_near("DFS")
+
+                self.frontier_to_file(filename, "DFS")
             
             i += 1
 
                 
         print("NOT found!")
 
-    def frontier_to_file(self, filename):
+    def frontier_to_file(self, filename, algo):
         f = open(filename, "a")
         f.write("\nBegin frontier\n")
         j = 0
-        for states in self.frontierSet:    
-            f.write("%d \n" %(j))
-            for i, line in enumerate(states.board.grid):
-                for ch in line:
-                    f.write(ch) # ends with a new line
+        if algo == "DFS":
+            for states in self.frontierList:    
+                f.write("%d \n" %(j))
+                for i, line in enumerate(states.board.grid):
+                    for ch in line:
+                        f.write(ch) # ends with a new line
+                    f.write("\n")
+                j += 1
                 f.write("\n")
-            j += 1
-            f.write("\n")
-            if states.board.getStringRep() in self.seen:
-                f.write("NOOOOOOOOO\n")
-        f.write("frontier done")
-        f.close()
+                if states.board.getStringRep() in self.exploredSet:
+                    f.write("NOOOOOOOOO\n")
+            f.write("frontier done")
+            f.close()
+        else:
+            for heu, _, states in self.frontierList:    
+                f.write("%d: %d\n" %(j,heu))
+                for i, line in enumerate(states.board.grid):
+                    for ch in line:
+                        f.write(ch) # ends with a new line
+                    f.write("\n")
+                j += 1
+                f.write("\n")
+                if states.board.getStringRep() in self.exploredSet:
+                    f.write("NOOOOOOOOO\n")
+            f.write("frontier done")
+            f.close()
     
     def output_to_file(self, state, filename):
         """
@@ -524,7 +610,7 @@ if __name__ == "__main__":
     '''
     
     # read the board from the file
-    board = read_from_file("./tests/t8.txt")
+    board = read_from_file("./tests/t2.txt")
     # board.display()
     # board.find_empty()
     # for piece in board.pieces:
@@ -536,7 +622,9 @@ if __name__ == "__main__":
     with open("./sol.txt", "r+") as f:
         f.truncate(0)
     start = time.time()
-    solvers.runDFS()
+    # print(solvers.currentState.board.manhattan())
+    # solvers.run_DFS()
+    solvers.run_A_star()
     end = time.time()
     print("Time:", end - start)
     print("\n")
