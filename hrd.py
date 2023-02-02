@@ -4,6 +4,8 @@ from heapq import heappush, heappop # min-heap - heap[0] smallest value
 import time
 import argparse
 import sys
+import os
+import glob
 sys.setrecursionlimit(1000000)
 
 #====================================================================================
@@ -274,7 +276,7 @@ class State:
             return True
             
 
-class DFS:
+class Solvers:
     def __init__(self, startState, endState=None):
         self.startState = startState
         self.endState = endState
@@ -315,7 +317,6 @@ class DFS:
         new_str = newBoard.getStringRep()
         if new_str not in self.seen:
             self.frontierSet.append(State(newBoard, 0, self.currentState.depth + 1, self.currentState))
-            self.seen.add(new_str)
         # newState.board.display()
         # print("depth:", newState.depth)
         # # input("continue?\n")
@@ -394,7 +395,7 @@ class DFS:
         """
         self.frontierSet.append(self.startState)
         start_str = self.startState.board.getStringRep()
-        self.seen.add(start_str)
+        i = 1
         while len(self.frontierSet) != 0:
         # while self.currentState.depth < 2000:
             # print("frontier",len(self.frontierSet))
@@ -409,18 +410,21 @@ class DFS:
                     
                     self.currentState.trace_sol()        
                     return
+            elif cur_str not in self.seen:
+                # filename = "./output/output" + str(i) + ".txt"
+                # file = open(filename,'w+')
+                # self.output_to_file(self.currentState, filename)
+                # add current state to the explored set
+                self.seen.add(curState.board.getStringRep())
+                # find successors and add them to frontier
+                self.move_near()
+                # self.frontier_to_file(filename)
             
-            self.output_to_file(self.currentState, "./output1.txt")
-            # self.currentState.board.display()
-            # print("depth:", self.currentState.depth)
-            # input("continue?\n")
-            self.move_near()
-            self.frontier_to_file("./output1.txt")
+            i += 1
 
                 
         print("NOT found!")
 
-            
     def frontier_to_file(self, filename):
         f = open(filename, "a")
         f.write("\nBegin frontier\n")
@@ -433,6 +437,8 @@ class DFS:
                 f.write("\n")
             j += 1
             f.write("\n")
+            if states.board.getStringRep() in self.seen:
+                f.write("NOOOOOOOOO\n")
         f.write("frontier done")
         f.close()
     
@@ -518,22 +524,19 @@ if __name__ == "__main__":
     '''
     
     # read the board from the file
-    board = read_from_file("./tests/t2.txt")
+    board = read_from_file("./tests/t8.txt")
     # board.display()
     # board.find_empty()
     # for piece in board.pieces:
         # print(piece)
     # print(board.grid)
     state = State(board, 0, 0, None)
-    dfs = DFS(state)
-    with open("./output.txt", "r+") as f:
-        f.truncate(0)
-    with open("./output1.txt", "r+") as f:
-        f.truncate(0)
+    solvers = Solvers(state)
+
     with open("./sol.txt", "r+") as f:
         f.truncate(0)
     start = time.time()
-    dfs.runDFS()
+    solvers.runDFS()
     end = time.time()
     print("Time:", end - start)
     print("\n")
