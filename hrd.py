@@ -427,10 +427,9 @@ class Solvers:
         # start_str = self.currentState.board.getStringRep()
         i = 1
         while self.frontierList:
-        # while self.currentState.depth < 2000:
-            print("\nIteration %d\nCurr\n" %i)
-            curState = self.frontierList[0][2]
-            heappop(self.frontierList)   # Pop the lowest heuristic state out of the frontier
+            # curState = self.frontierList[0][2]
+            # Pop the lowest heuristic state out of the frontier
+            _, _, curState = heappop(self.frontierList)
             
             # Get string representation of the current state
             cur_str = curState.board.getStringRep()
@@ -441,22 +440,14 @@ class Solvers:
                 # Add current state to the explored set
                 self.exploredSet.add(cur_str)
                 if self.checkGoal():            # Check if current state is the goal state
-                    print("\nGoal found!")
-                    print("depth:", self.currentState.depth)
                     self.currentState.board.display()
-                    self.currentState.trace_sol()        
-                    return
-                
-                filename = "./output/output" + str(i) + ".txt"
-                file = open(filename,'w+')
-                self.output_to_file(self.currentState, filename)
+                    self.currentState.trace_sol()      
+                    # print("Depth:", self.currentState.depth)  
+                    return self.currentState.depth
+
                 
                 # Find successors and add them to frontier
                 self.move_near("A*")
-                
-                self.frontier_to_file(filename, "A*")
-            
-            i += 1
 
 
     def run_DFS(self):
@@ -479,8 +470,6 @@ class Solvers:
             if self.checkGoal():            # Check if current state is the goal state
                     print("\nGoal found!")
                     print("depth:", self.currentState.depth)
-                    self.currentState.board.display()
-                    
                     self.currentState.trace_sol()        
                     return
             elif cur_str not in self.exploredSet:
@@ -613,27 +602,32 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     '''
-    
-    # read the board from the file
-    board = read_from_file("./tests/t1.txt")
-    # board.display()
-    # board.find_empty()
-    # for piece in board.pieces:
-        # print(piece)
-    # print(board.grid)
-    state = State(board, 0, 0, None)
-    solvers = Solvers(state)
+    f = open("./tests/big_tests.txt", "a")
+    for i in range(1,33):
+        # read the board from the file
+        filename = "./tests/t" + str(i) + ".txt"
+        board = read_from_file(filename)
+        # board.display()
+        # board.find_empty()
+        # for piece in board.pieces:
+            # print(piece)
+        # print(board.grid)
+        state = State(board, 0, 0, None)
+        solvers = Solvers(state)
 
-    with open("./sol.txt", "r+") as f:
-        f.truncate(0)
+        # with open("./sol.txt", "r+") as f:
+        #     f.truncate(0)
 
-    start = time.time()
-    # print(solvers.currentState.board.manhattan())
-    # solvers.run_DFS()
-    solvers.run_A_star()
-    end = time.time()
-    print("Time:", end - start)
-    print("\n")
+        start = time.time()
+        # print(solvers.currentState.board.manhattan())
+        # solvers.run_DFS()
+        depth = solvers.run_A_star()
+        f.write("t%d: %d " %(i, depth))
+        end = time.time()
+        f.write("%d" %(end - start))
+    f.close()
+        
+        
     
 
     
