@@ -281,7 +281,7 @@ class State:
 
     
     def trace_sol(self):
-        f = open("./sol.txt", "a")
+        f = open(outputfile, "a")
         if self.depth == 0:
             return True
         self = self.parent
@@ -404,7 +404,7 @@ class Solvers:
 
 
 
-    def run_A_star(self):
+    def run_A_star(self, outputfile):
         """
         A* algorithm with Manhattan heuristics to find the optimal solution.
         frontierList is a min heap containing:
@@ -441,7 +441,7 @@ class Solvers:
                 self.exploredSet.add(cur_str)
                 if self.checkGoal():            # Check if current state is the goal state
                     self.currentState.board.display()
-                    self.currentState.trace_sol()      
+                    self.currentState.trace_sol(outputfile)      
                     # print("Depth:", self.currentState.depth)  
                     return self.currentState.depth
 
@@ -450,7 +450,7 @@ class Solvers:
                 self.move_near("A*")
 
 
-    def run_DFS(self):
+    def run_DFS(self, outputfile):
         """
         While frontier is not empty,
         Pop a state out of frontier, add it to exploredSet
@@ -470,7 +470,7 @@ class Solvers:
             if self.checkGoal():            # Check if current state is the goal state
                     print("\nGoal found!")
                     print("depth:", self.currentState.depth)
-                    self.currentState.trace_sol()        
+                    self.currentState.trace_sol(outputfile)        
                     return
             elif cur_str not in self.exploredSet:
                 filename = "./output/output" + str(i) + ".txt"
@@ -579,7 +579,6 @@ def read_from_file(filename):
 
 
 if __name__ == "__main__":
-    '''
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--inputfile",
@@ -601,31 +600,40 @@ if __name__ == "__main__":
         help="The searching algorithm."
     )
     args = parser.parse_args()
-    '''
-    f = open("./tests/big_tests.txt", "a")
-    for i in range(1,33):
-        # read the board from the file
-        filename = "./tests/t" + str(i) + ".txt"
-        board = read_from_file(filename)
-        # board.display()
-        # board.find_empty()
-        # for piece in board.pieces:
-            # print(piece)
-        # print(board.grid)
-        state = State(board, 0, 0, None)
-        solvers = Solvers(state)
 
-        # with open("./sol.txt", "r+") as f:
-        #     f.truncate(0)
+    board = read_from_file(args.inputfile)
+    state = State(board, 0, 0, None)
+    solvers = Solvers(state)
+    if args.algo == "dfs":
+        solvers.run_DFS(args.outputfile)
+    else:
+        solvers.run_A_star(args.outputfile)
 
-        start = time.time()
-        # print(solvers.currentState.board.manhattan())
-        # solvers.run_DFS()
-        depth = solvers.run_A_star()
-        f.write("t%d: %d " %(i, depth))
-        end = time.time()
-        f.write("%d" %(end - start))
-    f.close()
+
+    # f = open("./tests/big_tests.txt", "a")
+    # for i in range(1,33):
+    #     # read the board from the file
+    #     filename = "./tests/t" + str(i) + ".txt"
+    #     board = read_from_file(filename)
+    #     # board.display()
+    #     # board.find_empty()
+    #     # for piece in board.pieces:
+    #         # print(piece)
+    #     # print(board.grid)
+    #     state = State(board, 0, 0, None)
+    #     solvers = Solvers(state)
+
+    #     # with open("./sol.txt", "r+") as f:
+    #     #     f.truncate(0)
+
+    #     start = time.time()
+    #     # print(solvers.currentState.board.manhattan())
+    #     # solvers.run_DFS()
+    #     depth = solvers.run_A_star()
+    #     f.write("t%d: %d " %(i, depth))
+    #     end = time.time()
+    #     f.write("%d" %(end - start))
+    # f.close()
         
         
     
