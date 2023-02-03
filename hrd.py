@@ -306,6 +306,7 @@ class State:
                     f.write(ch) # ends with a new line
                 f.write("\n")
             f.write("\n")
+        f.close()
         
             
 
@@ -616,50 +617,52 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     '''
-    # f = open("./tests/big_tests.txt", "a")
-    # for i in range(1,33):
-    #     # read the board from the file
-    #     filename = "./tests/t" + str(i) + ".txt"
-    #     board = read_from_file(filename)
-    #     # board.display()
-    #     # board.find_empty()
-    #     # for piece in board.pieces:
-    #         # print(piece)
-    #     # print(board.grid)
-    #     state = State(board, 0, 0, None)
-    #     solvers = Solvers(state)
+    f = open("./tests/big_tests.txt", "a")
+    for i in range(1,33):
+        # read the board from the file
+        filename = "./tests/t" + str(i) + ".txt"
+        board = read_from_file(filename)
+        # board.display()
+        # board.find_empty()
+        # for piece in board.pieces:
+            # print(piece)
+        # print(board.grid)
+        state = State(board, 0, 0, None)
+        solvers = Solvers(state)
 
-    #     # with open("./sol.txt", "r+") as f:
-    #     #     f.truncate(0)
+        # with open("./sol.txt", "r+") as f:
+        #     f.truncate(0)
 
-    #     start = time.time()
-    #     # print(solvers.currentState.board.manhattan())
-    #     # solvers.run_DFS()
-    #     depth = solvers.run_A_star()
-    #     f.write("t%d: %d " %(i, depth))
-    #     end = time.time()
-    #     f.write("%d" %(end - start))
-    # f.close()
+        start = time.time()
+        # print(solvers.currentState.board.manhattan())
+        # solvers.run_DFS()
+        outputfileName = "./results/t" + str(i) + ".txt"
+        hii = open(outputfileName,'w+')
+        depth = solvers.run_A_star(outputfileName)
+        f.write("t%d: %d " %(i, depth))
+        end = time.time()
+        f.write("%d" %(end - start))
+    f.close()
 
 
-    # read the board from the file
-    board = read_from_file("./test1.txt")
-    # board.display()
-    # board.find_empty()
-    # for piece in board.pieces:
-        # print(piece)
-    # print(board.grid)
-    state = State(board, 0, 0, None)
-    solvers = Solvers(state)
+    # # read the board from the file
+    # board = read_from_file("./test1.txt")
+    # # board.display()
+    # # board.find_empty()
+    # # for piece in board.pieces:
+    #     # print(piece)
+    # # print(board.grid)
+    # state = State(board, 0, 0, None)
+    # solvers = Solvers(state)
 
-    # with open("./sol.txt", "r+") as f:
-    #     f.truncate(0)
+    # # with open("./sol.txt", "r+") as f:
+    # #     f.truncate(0)
 
-    start = time.time()
-    # print(solvers.currentState.board.manhattan())
-    # solvers.run_DFS()
-    depth = solvers.run_A_star("./sol.txt")
-    end = time.time()
+    # start = time.time()
+    # # print(solvers.currentState.board.manhattan())
+    # # solvers.run_DFS()
+    # depth = solvers.run_A_star("./sol.txt")
+    # end = time.time()
         
         
     
