@@ -281,7 +281,8 @@ class State:
         f = open(filename, "a")
         while self.parent:
             path.append(self)
-            self= self.parent
+            self = self.parent
+        path.append(self)
         path = path[::-1]
         for states in (path):    
             for i, line in enumerate(states.board.grid):
