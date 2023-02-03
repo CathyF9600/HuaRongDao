@@ -242,14 +242,11 @@ class Board:
         and we need to use it in order to create State object.
         """
         grid = self.grid
-        # self.display()
         all_pieces = self.pieces
         for piece in all_pieces:
             if piece.is_goal:
                 x = piece.coord_x
                 y = piece.coord_y
-                # print(x,y)
-                # print(abs(1-x) + abs(3-y))
                 return abs(1-x) + abs(3-y)
 
 
@@ -279,20 +276,19 @@ class State:
         self.parent = parent
         self.id = hash(board)  # The id for breaking ties.
 
-    
-    def trace_sol(self):
-        f = open(outputfile, "a")
-        if self.depth == 0:
-            return True
-        self = self.parent
-        if self.trace_sol() == True:
-            for i, line in enumerate(self.board.grid):
+    def trace_sol(self, filename):
+        path = []
+        f = open(filename, "a")
+        while self.parent:
+            path.append(self)
+            self= self.parent
+        path = path[::-1]
+        for states in (path):    
+            for i, line in enumerate(states.board.grid):
                 for ch in line:
                     f.write(ch) # ends with a new line
                 f.write("\n")
             f.write("\n")
-            f.close()
-            return True
             
 
 class Solvers:
@@ -345,10 +341,7 @@ class Solvers:
         """
         board = self.currentState.board
         grid = board.grid
-        # self.currentState.board.display()
-        # print("depth:", self.currentState.depth)
         e = board.find_empty()    #lower row first
-        # print("e", e)
         e1y = e[0][0]
         e1x = e[0][1]
         e2y = e[1][0]
@@ -423,29 +416,21 @@ class Solvers:
         self.currentState.f = self.currentState.board.manhattan()
         # Push (f, state) into the frontier
         heappush(self.frontierList, (self.currentState.f, self.currentState.id, self.currentState))
-        # Get string representation of the current state
-        # start_str = self.currentState.board.getStringRep()
-        i = 1
         while self.frontierList:
-            # curState = self.frontierList[0][2]
             # Pop the lowest heuristic state out of the frontier
             _, _, curState = heappop(self.frontierList)
-            
             # Get string representation of the current state
             cur_str = curState.board.getStringRep()
             # Update current state for later function calls
             self.currentState = curState
-            # cur_id = hash(self.currentState.board)
             if cur_str not in self.exploredSet:
                 # Add current state to the explored set
                 self.exploredSet.add(cur_str)
-                if self.checkGoal():            # Check if current state is the goal state
-                    self.currentState.board.display()
+                # Check if current state is the goal state
+                if self.checkGoal():    
+                    # Output to file        
                     self.currentState.trace_sol(outputfile)      
-                    # print("Depth:", self.currentState.depth)  
                     return self.currentState.depth
-
-                
                 # Find successors and add them to frontier
                 self.move_near("A*")
 
@@ -459,36 +444,21 @@ class Solvers:
         """
         self.frontierList.append(self.currentState)
         start_str = self.currentState.board.getStringRep()
-        i = 1
         while len(self.frontierList) != 0:
-        # while self.currentState.depth < 2000:
-            # print("frontier",len(self.frontierList))
-            curState = self.frontierList.pop(-1)   # Pop the last state out of the frontier
+            # Pop the last state out of the frontier
+            curState = self.frontierList.pop(-1)   
             cur_str = curState.board.getStringRep()
-            self.currentState = curState    # Update current state for DFS
-            cur_id = hash(self.currentState.board)
-            if self.checkGoal():            # Check if current state is the goal state
-                    print("\nGoal found!")
-                    print("depth:", self.currentState.depth)
+            # Update current state for DFS
+            self.currentState = curState    
+            # Check if current state is the goal state
+            if self.checkGoal():            
                     self.currentState.trace_sol(outputfile)        
                     return
             elif cur_str not in self.exploredSet:
-                filename = "./output/output" + str(i) + ".txt"
-                file = open(filename,'w+')
-                self.output_to_file(self.currentState, filename)
-
                 # Add current state to the explored set
-            
+                self.exploredSet.add(curState.board.getStringRep())
                 # Find successors and add them to frontier
                 self.move_near("DFS")
-
-                self.exploredSet.add(curState.board.getStringRep())
-
-                self.frontier_to_file(filename, "DFS")
-            
-            i += 1
-
-                
         print("NOT found!")
 
     def frontier_to_file(self, filename, algo):
@@ -610,30 +580,6 @@ if __name__ == "__main__":
         solvers.run_A_star(args.outputfile)
 
 
-    # f = open("./tests/big_tests.txt", "a")
-    # for i in range(1,33):
-    #     # read the board from the file
-    #     filename = "./tests/t" + str(i) + ".txt"
-    #     board = read_from_file(filename)
-    #     # board.display()
-    #     # board.find_empty()
-    #     # for piece in board.pieces:
-    #         # print(piece)
-    #     # print(board.grid)
-    #     state = State(board, 0, 0, None)
-    #     solvers = Solvers(state)
-
-    #     # with open("./sol.txt", "r+") as f:
-    #     #     f.truncate(0)
-
-    #     start = time.time()
-    #     # print(solvers.currentState.board.manhattan())
-    #     # solvers.run_DFS()
-    #     depth = solvers.run_A_star()
-    #     f.write("t%d: %d " %(i, depth))
-    #     end = time.time()
-    #     f.write("%d" %(end - start))
-    # f.close()
         
         
     
