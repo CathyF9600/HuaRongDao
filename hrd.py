@@ -280,19 +280,33 @@ class State:
         self.id = hash(board)  # The id for breaking ties.
 
     
-    def trace_sol(self):
-        f = open("./sol.txt", "a")
-        if self.depth == 0:
-            return True
-        self = self.parent
-        if self.trace_sol() == True:
-            for i, line in enumerate(self.board.grid):
+    def trace_sol(self, filename):
+        
+        # if self.depth == 0:
+        #     return True
+        # self = self.parent.parent
+        # if self.trace_sol(filename) == True:
+            # f = open(filename, "a")
+        #     for i, line in enumerate(self.parent.board.grid):
+        #         for ch in line:
+        #             f.write(ch) # ends with a new line
+        #         f.write("\n")
+        #     f.write("\n")
+        #     f.close()
+        #     return True
+        path = []
+        f = open(filename, "a")
+        while self.parent:
+            path.append(self)
+            self= self.parent
+        path = path[::-1]
+        for states in (path):    
+            for i, line in enumerate(states.board.grid):
                 for ch in line:
                     f.write(ch) # ends with a new line
                 f.write("\n")
             f.write("\n")
-            f.close()
-            return True
+        
             
 
 class Solvers:
@@ -404,7 +418,7 @@ class Solvers:
 
 
 
-    def run_A_star(self):
+    def run_A_star(self, filename):
         """
         A* algorithm with Manhattan heuristics to find the optimal solution.
         frontierList is a min heap containing:
@@ -440,8 +454,8 @@ class Solvers:
                 # Add current state to the explored set
                 self.exploredSet.add(cur_str)
                 if self.checkGoal():            # Check if current state is the goal state
-                    self.currentState.board.display()
-                    self.currentState.trace_sol()      
+                    # self.currentState.board.display()
+                    self.currentState.trace_sol(filename)      
                     # print("Depth:", self.currentState.depth)  
                     return self.currentState.depth
 
@@ -602,30 +616,50 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     '''
-    f = open("./tests/big_tests.txt", "a")
-    for i in range(1,33):
-        # read the board from the file
-        filename = "./tests/t" + str(i) + ".txt"
-        board = read_from_file(filename)
-        # board.display()
-        # board.find_empty()
-        # for piece in board.pieces:
-            # print(piece)
-        # print(board.grid)
-        state = State(board, 0, 0, None)
-        solvers = Solvers(state)
+    # f = open("./tests/big_tests.txt", "a")
+    # for i in range(1,33):
+    #     # read the board from the file
+    #     filename = "./tests/t" + str(i) + ".txt"
+    #     board = read_from_file(filename)
+    #     # board.display()
+    #     # board.find_empty()
+    #     # for piece in board.pieces:
+    #         # print(piece)
+    #     # print(board.grid)
+    #     state = State(board, 0, 0, None)
+    #     solvers = Solvers(state)
 
-        # with open("./sol.txt", "r+") as f:
-        #     f.truncate(0)
+    #     # with open("./sol.txt", "r+") as f:
+    #     #     f.truncate(0)
 
-        start = time.time()
-        # print(solvers.currentState.board.manhattan())
-        # solvers.run_DFS()
-        depth = solvers.run_A_star()
-        f.write("t%d: %d " %(i, depth))
-        end = time.time()
-        f.write("%d" %(end - start))
-    f.close()
+    #     start = time.time()
+    #     # print(solvers.currentState.board.manhattan())
+    #     # solvers.run_DFS()
+    #     depth = solvers.run_A_star()
+    #     f.write("t%d: %d " %(i, depth))
+    #     end = time.time()
+    #     f.write("%d" %(end - start))
+    # f.close()
+
+
+    # read the board from the file
+    board = read_from_file("./test1.txt")
+    # board.display()
+    # board.find_empty()
+    # for piece in board.pieces:
+        # print(piece)
+    # print(board.grid)
+    state = State(board, 0, 0, None)
+    solvers = Solvers(state)
+
+    # with open("./sol.txt", "r+") as f:
+    #     f.truncate(0)
+
+    start = time.time()
+    # print(solvers.currentState.board.manhattan())
+    # solvers.run_DFS()
+    depth = solvers.run_A_star("./sol.txt")
+    end = time.time()
         
         
     
