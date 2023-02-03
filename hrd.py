@@ -331,7 +331,7 @@ class Solvers:
             newBoard = newBoard.move(newBoard.pieces, i, type, dir)
             new_str = newBoard.getStringRep()
             if new_str not in self.exploredSet:
-                f = newBoard.manhattan()
+                f = newBoard.manhattan() + self.currentState.depth
                 id = hash(newBoard)
                 heappush(self.frontierList, (f, id, State(newBoard, f, self.currentState.depth + 1, self.currentState)))
 
@@ -389,7 +389,6 @@ class Solvers:
                     self.add_successor(i, "v" ,"right", algo)
 
             if piece.is_goal and grid[py][px+1] == "1" and grid[py+1][px] == "1" and grid[py+1][px+1] == "1":
-                # print("py:",py, "px:",px, "e1y:",e1y, "e1x:",e1x, "e2y:",e2y, "e2x:",e2x)
                 # if we can move right
                 if (py == e1y and px == e1x - 2 and e2y == e1y + 1 and e2x == e1x): 
                     self.add_successor(i, "1" ,"right", algo)
@@ -422,35 +421,39 @@ class Solvers:
         """
         # Update current state's heuristic value
         self.currentState.f = self.currentState.board.manhattan()
-        # self.currentState.id = hash(self.currentState.board)
         # Push (f, state) into the frontier
         heappush(self.frontierList, (self.currentState.f, self.currentState.id, self.currentState))
         # Get string representation of the current state
-        start_str = self.currentState.board.getStringRep()
+        # start_str = self.currentState.board.getStringRep()
         i = 1
         while self.frontierList:
         # while self.currentState.depth < 2000:
-            f, id, curState = heappop(self.frontierList)   # Pop the lowest heuristic state out of the frontier
+            print("\nIteration %d\nCurr\n" %i)
+            curState = self.frontierList[0][2]
+            heappop(self.frontierList)   # Pop the lowest heuristic state out of the frontier
+            
             # Get string representation of the current state
             cur_str = curState.board.getStringRep()
             # Update current state for later function calls
             self.currentState = curState
-            self.currentState.f = f
             # cur_id = hash(self.currentState.board)
-            if self.checkGoal():            # Check if current state is the goal state
+            if cur_str not in self.exploredSet:
+                # Add current state to the explored set
+                self.exploredSet.add(cur_str)
+                if self.checkGoal():            # Check if current state is the goal state
                     print("\nGoal found!")
                     print("depth:", self.currentState.depth)
                     self.currentState.board.display()
                     self.currentState.trace_sol()        
                     return
-            elif cur_str not in self.exploredSet:
+                
                 filename = "./output/output" + str(i) + ".txt"
                 file = open(filename,'w+')
                 self.output_to_file(self.currentState, filename)
-                # Add current state to the explored set
-                self.exploredSet.add(curState.board.getStringRep())
+                
                 # Find successors and add them to frontier
                 self.move_near("A*")
+                
                 self.frontier_to_file(filename, "A*")
             
             i += 1
@@ -486,9 +489,11 @@ class Solvers:
                 self.output_to_file(self.currentState, filename)
 
                 # Add current state to the explored set
-                self.exploredSet.add(curState.board.getStringRep())
+            
                 # Find successors and add them to frontier
                 self.move_near("DFS")
+
+                self.exploredSet.add(curState.board.getStringRep())
 
                 self.frontier_to_file(filename, "DFS")
             
@@ -516,7 +521,7 @@ class Solvers:
             f.close()
         else:
             for heu, _, states in self.frontierList:    
-                f.write("%d: %d\n" %(j,heu))
+                f.write("%d: %d\n\n" %(j,heu))
                 for i, line in enumerate(states.board.grid):
                     for ch in line:
                         f.write(ch) # ends with a new line
@@ -610,7 +615,7 @@ if __name__ == "__main__":
     '''
     
     # read the board from the file
-    board = read_from_file("./tests/t2.txt")
+    board = read_from_file("./tests/t1.txt")
     # board.display()
     # board.find_empty()
     # for piece in board.pieces:
@@ -621,6 +626,7 @@ if __name__ == "__main__":
 
     with open("./sol.txt", "r+") as f:
         f.truncate(0)
+
     start = time.time()
     # print(solvers.currentState.board.manhattan())
     # solvers.run_DFS()
