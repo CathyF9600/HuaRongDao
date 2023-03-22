@@ -276,7 +276,7 @@ class State:
         self.parent = parent
         self.id = hash(board)  # The id for breaking ties.
 
-    def trace_sol(self, filename):
+def trace_sol(self, filename):
         path = []
         f = open(filename, "a")
         while self.parent:
@@ -571,7 +571,7 @@ if __name__ == "__main__":
         help="The searching algorithm."
     )
     args = parser.parse_args()
-
+    
     board = read_from_file(args.inputfile)
     state = State(board, 0, 0, None)
     solvers = Solvers(state)
@@ -579,8 +579,6 @@ if __name__ == "__main__":
         solvers.run_DFS(args.outputfile)
     else:
         solvers.run_A_star(args.outputfile)
-
-
         
         
     
